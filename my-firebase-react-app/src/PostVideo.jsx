@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { storage, db, auth } from './firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import './PostVideo.css';
 
 function PostVideo() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [userPrompt, setUserPrompt] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
@@ -13,13 +17,50 @@ function PostVideo() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // For now, just console.log the file and userPrompt
-    console.log('File:', selectedFile);
-    console.log('User Prompt:', userPrompt);
-    // Navigate to processing page
-    navigate('/processing');
+    if (!selectedFile) return;
+
+    // Create a reference to the file in Firebase Storage
+    const fileRef = ref(storage, 'videos/' + selectedFile.name);
+
+    // Start the upload
+    const uploadTask = uploadBytesResumable(fileRef, selectedFile);
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        // Track upload progress
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+        console.log('Upload is ' + progress + '% done');
+      },
+      (error) => {
+        console.error('Upload error:', error);
+        // TODO: Add error handling UI
+      },
+      async () => {
+        try {
+          // Get the download URL
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          // Store metadata in Firestore
+          await addDoc(collection(db, 'videos'), {
+            url: downloadURL,
+            prompt: userPrompt,
+            createdAt: serverTimestamp(),
+            status: 'uploaded',
+            userId: auth.currentUser?.uid, // Store user ID if available
+            fileName: selectedFile.name
+          });
+
+          console.log('Upload complete and metadata stored!');
+          navigate('/processing');
+        } catch (error) {
+          console.error('Error storing video metadata:', error);
+          // TODO: Add error handling UI
+        }
+      }
+    );
   };
 
   return (
@@ -44,6 +85,16 @@ function PostVideo() {
             )}
           </div>
           
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="progress-bar">
+              <div 
+                className="progress-fill"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+              <span className="progress-text">{Math.round(uploadProgress)}%</span>
+            </div>
+          )}
+          
           <div className="textarea-container">
             <textarea
               placeholder="Add context for your video (optional)"
@@ -54,7 +105,11 @@ function PostVideo() {
             />
           </div>
           
-          <button type="submit" className="submit-button">
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={!selectedFile || uploadProgress > 0}
+          >
             Generate Narration
           </button>
         </form>
