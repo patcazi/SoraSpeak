@@ -1,0 +1,25 @@
+.home-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+  padding: 20px;
+  padding-top: 50px; /* Add top padding instead of vertical centering */
+}
+
+.home-content {
+  text-align: center;
+}
+
+.home-content h1 {
+  color: #2c3e50;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.greeting {
+  color: #4a5568;
+  font-size: 1.5rem;
+  font-weight: 500;
+} 
