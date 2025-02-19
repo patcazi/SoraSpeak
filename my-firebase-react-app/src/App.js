@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthLandingPage from './AuthLandingPage';
 import HomePage from './HomePage';
+import PostVideo from './PostVideo';
+import ProcessingPage from './ProcessingPage';
+import ResultPage from './ResultPage';
 import { AuthProvider } from './AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -18,6 +21,30 @@ function App() {
                 <HomePage />
               </ProtectedRoute>
             } 
+          />
+          <Route 
+            path="/post-video" 
+            element={
+              <ProtectedRoute>
+                <PostVideo />
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="/processing"
+            element={
+              <ProtectedRoute>
+                <ProcessingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/result"
+            element={
+              <ProtectedRoute>
+                <ResultPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </Router>

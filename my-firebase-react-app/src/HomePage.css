@@ -22,4 +22,28 @@
   color: #4a5568;
   font-size: 1.5rem;
   font-weight: 500;
+  margin-bottom: 2rem;
+}
+
+.button-container {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.home-button {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.home-button:hover {
+  background: #357abd;
+  transform: translateY(-1px);
 } 
