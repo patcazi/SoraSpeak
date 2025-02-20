@@ -8,7 +8,7 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 // Import pipeline modules
-// const {extractKeyframe} = require("./pipeline/extractKeyframe");
+const {extractKeyframe} = require("./pipeline/extractKeyframe");
 // const {analyzeKeyframe} = require("./pipeline/openaiVision");
 // const {generateAudioNarration} = require("./pipeline/elevenlabsTTS");
 // const {mergeVideoAndAudio} = require("./pipeline/mergeVideoAudio");
@@ -106,6 +106,10 @@ exports.onVideoDocCreate = onDocumentCreated(
           testTimestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
         console.log("Document updated with test status");
+
+        console.log("DEBUG: Attempting to extract keyframe...");
+        const result = await extractKeyframe("https://firebasestorage.googleapis.com/v0/b/soraspeak-86493.firebasestorage.app/o/videos%2Foutput.mp4?alt=media&token=d11ef25f-3f1c-4117-821d-378fbfae196d");
+        console.log("Keyframe extraction result:", result);
       } catch (error) {
         console.error("Error in minimal function:", error);
         await snap.ref.update({
