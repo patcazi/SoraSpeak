@@ -5,17 +5,22 @@ const admin = require("firebase-admin");
 // const path = require("path"); // needed for helper functions
 // const os = require("os"); // needed for helper functions
 
+// Initialize Firebase Admin SDK without explicit credentials
+// When deployed, it will use the default service account
 admin.initializeApp();
 
 // Import pipeline modules
-const {extractKeyframe} = require("./pipeline/extractKeyframe");
+// const {extractKeyframe} = require("./pipeline/extractKeyframe");
 // const {analyzeKeyframe} = require("./pipeline/openaiVision");
 // const {generateAudioNarration} = require("./pipeline/elevenlabsTTS");
 // const {mergeVideoAndAudio} = require("./pipeline/mergeVideoAudio");
 
 // Define secrets (keep these for now)
+// eslint-disable-next-line no-unused-vars
 const openaiApiKey = defineSecret("OPENAI_API_KEY");
+// eslint-disable-next-line no-unused-vars
 const elevenLabsApiKey = defineSecret("ELEVENLABS_API_KEY");
+// eslint-disable-next-line no-unused-vars
 const googleApiKey = defineSecret("GOOGLE_API_KEY");
 
 /*
@@ -86,37 +91,75 @@ const googleApiKey = defineSecret("GOOGLE_API_KEY");
 //   }
 // }
 
-exports.onVideoDocCreate = onDocumentCreated(
-    {
-      secrets: [openaiApiKey, elevenLabsApiKey, googleApiKey],
-      memory: "512Mi",
-      timeoutSeconds: 540,
-    },
+exports.onVideoDocCreateNew = onDocumentCreated(
     "videos/{docId}",
     async (event) => {
-      const snap = event.data;
-      const data = snap.data();
-      console.log("DEBUG: minimal function triggered!");
-      console.log("Document data:", data);
+      console.log("DEBUG: Received event:", JSON.stringify(event, null, 2));
 
       try {
-        // Update document with test status
-        await snap.ref.update({
+        // In v2, we need to access the data through event.data
+        if (!event) {
+          console.log("Event object is undefined");
+          return;
+        }
+
+        if (!event.data) {
+          console.log("Event data is undefined");
+          return;
+        }
+
+        if (!event.data.data || typeof event.data.data !== "function") {
+          console.log("Event data.data is not a function");
+          return;
+        }
+
+        if (!event.data.ref) {
+          console.log("Event data.ref is undefined");
+          return;
+        }
+
+        const data = event.data.data();
+        console.log("DEBUG: Document data:", data);
+        console.log(
+            "DEBUG: About to update document with test_triggered status",
+        );
+
+        // Update document with test status using the document reference
+        const ref = event.data.ref;
+        console.log("DEBUG: Document reference:", ref);
+
+        await ref.update({
           status: "test_triggered",
           testTimestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
         console.log("Document updated with test status");
 
-        console.log("DEBUG: Attempting to extract keyframe...");
-        const result = await extractKeyframe("https://firebasestorage.googleapis.com/v0/b/soraspeak-86493.firebasestorage.app/o/videos%2Foutput.mp4?alt=media&token=d11ef25f-3f1c-4117-821d-378fbfae196d");
-        console.log("Keyframe extraction result:", result);
+        console.log(
+            "DEBUG: Skipping extractKeyframe for minimal function test.",
+        );
       } catch (error) {
         console.error("Error in minimal function:", error);
-        await snap.ref.update({
-          status: "error",
-          error: error.message,
-          errorTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        console.error("Full stack trace:", error.stack);
+
+        try {
+          // Use event.data.ref for error updates
+          if (event && event.data && event.data.ref) {
+            console.log("DEBUG: Attempting to update error status");
+            const errorRef = event.data.ref;
+            await errorRef.update({
+              status: "error",
+              error: error.message,
+              errorTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            console.log("DEBUG: Error status updated successfully");
+          } else {
+            console.error(
+                "Cannot update error status: document reference is unavailable",
+            );
+          }
+        } catch (updateError) {
+          console.error("Error while updating error status:", updateError);
+        }
       }
     },
 );
