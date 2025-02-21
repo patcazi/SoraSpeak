@@ -1,4 +1,4 @@
-# Ignore environment file
+# Ignore environment files
 .env*
 .env*/
 .env.local*
@@ -9,3 +9,13 @@ node_modules
 # Optional: Ignore any build or log artifacts
 dist
 *.log
+
+# Ignore generated output files
+output.mp3
+finalOutput.mp4
+
+# Ignore macOS specific files
+.DS_Store
+
+Sam2.mp4
+SamOG.mp4

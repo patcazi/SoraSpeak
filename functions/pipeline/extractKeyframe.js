@@ -19,6 +19,7 @@ const ffmpegPath = require("ffmpeg-static");
 const os = require("os");
 const path = require("path");
 const admin = require("firebase-admin");
+const fs = require("fs");
 
 // Set ffmpeg path
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -28,7 +29,11 @@ ffmpeg.setFfmpegPath(ffmpegPath);
  * @param {string} bucketName - The Storage bucket name
  * @param {string} videoFilePath - Path to video in Storage
  *     (e.g., 'videos/example.mp4')
- * @return {Promise<string>} Path to extracted keyframe in /tmp
+ * @return {Promise<Object>} Object containing:
+ *   - localPath: Path to extracted keyframe in /tmp
+ *   - signedUrl: Signed URL for accessing the uploaded keyframe
+ *   - storagePath: Path to the keyframe in Firebase Storage
+ *   - error: Error message if keyframe extraction failed
  */
 async function extractKeyframe(bucketName, videoFilePath) {
   // Create unique local file paths in /tmp
@@ -75,7 +80,39 @@ async function extractKeyframe(bucketName, videoFilePath) {
     });
 
     console.log("Keyframe saved at:", localKeyframePath);
-    return localKeyframePath;
+
+    if (fs.existsSync(localKeyframePath)) {
+      const stats = fs.statSync(localKeyframePath);
+      console.log("DEBUG: Keyframe file exists. Size:", stats.size, "bytes");
+
+      // Upload the keyframe to Firebase Storage
+      const destinationPath = `keyframes/${path.basename(localKeyframePath)}`;
+      await bucket.upload(localKeyframePath, {
+        destination: destinationPath,
+        metadata: {contentType: "image/jpeg"},
+      });
+      console.log("DEBUG: Keyframe uploaded to:", destinationPath);
+
+      // Generate a signed URL for the uploaded keyframe
+      const [url] = await bucket.file(destinationPath).getSignedUrl({
+        action: "read",
+        expires: Date.now() + 60 * 60 * 1000, // 1 hour expiry
+      });
+      console.log("DEBUG: Signed URL for keyframe:", url);
+
+      // Return both the local path and the signed URL
+      return {
+        localPath: localKeyframePath,
+        signedUrl: url,
+        storagePath: destinationPath,
+      };
+    } else {
+      console.log("DEBUG: Keyframe file does not exist at", localKeyframePath);
+      return {
+        localPath: localKeyframePath,
+        error: "Keyframe file not found",
+      };
+    }
   } catch (error) {
     console.error("Error in extractKeyframe:", error);
     throw error;
