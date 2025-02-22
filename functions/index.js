@@ -207,8 +207,23 @@ exports.onVideoDocCreateNew = onDocumentCreated(
 
               try {
                 console.log("Uploading merged video to storage...");
-                await uploadFileToStorage(mergedVideoPath, "videos/finalMerged.mp4");
+                await uploadFileToStorage(mergedVideoPath, "videos/merged/finalMerged.mp4");
                 console.log("Uploaded merged video to storage successfully!");
+
+                // Generate a signed URL for the merged video
+                const bucket = admin.storage().bucket();
+                const mergedFile = bucket.file("videos/merged/finalMerged.mp4");
+                const [signedUrl] = await mergedFile.getSignedUrl({
+                  action: "read",
+                  expires: Date.now() + (1000 * 60 * 60 * 24), // valid for 24 hours
+                });
+                console.log("Merged video signed URL:", signedUrl);
+
+                await ref.update({
+                  mergedVideoUrl: signedUrl,
+                  mergedVideoTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                console.log("Updated document with merged video URL");
               } catch (err) {
                 console.error("Error uploading merged video to storage:", err);
               }
