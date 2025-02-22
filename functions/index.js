@@ -15,7 +15,7 @@ admin.initializeApp();
 const {extractKeyframe} = require("./pipeline/extractKeyframe");
 const {analyzeKeyframe} = require("./pipeline/openaiVision");
 const {generateTTS} = require("./pipeline/elevenlabsTTS");
-// const {mergeVideoAndAudio} = require("./pipeline/mergeVideoAudio");
+const {mergeAudioVideo} = require("./pipeline/mergeAudioVideo");
 
 // Define secrets (keep these for now)
 // eslint-disable-next-line no-unused-vars
@@ -162,8 +162,7 @@ exports.onVideoDocCreateNew = onDocumentCreated(
         console.log("DEBUG: Using video URL from document:", videoUrl);
 
         try {
-          console.log("DEBUG: Attempting to extract keyframe using URL:", videoUrl);
-          // Parse the Firebase Storage URL to get the file path
+          // Convert Firebase Storage URL to GCS format
           const urlObj = new URL(videoUrl);
           const pathWithQuery = urlObj.pathname.split("/o/")[1];
           if (!pathWithQuery) {
@@ -172,8 +171,14 @@ exports.onVideoDocCreateNew = onDocumentCreated(
           }
           const filePath = decodeURIComponent(pathWithQuery.split("?")[0]);
           const bucketName = "soraspeak-86493.firebasestorage.app";
+          const gcsUrl = `gs://${bucketName}/${filePath}`;
+          console.log("DEBUG: Converted to GCS URL:", gcsUrl);
 
-          console.log("DEBUG: Parsed file path:", filePath);
+          // Download the video to /tmp
+          const localVideoPath = await downloadVideoToTmp(gcsUrl);
+          console.log("DEBUG: Downloaded video to:", localVideoPath);
+
+          console.log("DEBUG: Attempting to extract keyframe using URL:", videoUrl);
           const result = await extractKeyframe(bucketName, filePath);
           console.log("DEBUG: Result from extractKeyframe is:", result);
 
@@ -195,6 +200,18 @@ exports.onVideoDocCreateNew = onDocumentCreated(
               console.log("Generating TTS for:", narrative);
               const localAudioPath = await generateTTS(narrative);
               console.log("Local TTS file path:", localAudioPath);
+
+              // Merge video (localVideoPath) with the TTS audio (localAudioPath)
+              const mergedVideoPath = await mergeAudioVideo(localVideoPath, localAudioPath);
+              console.log("DEBUG: Merged video path:", mergedVideoPath);
+
+              try {
+                console.log("Uploading merged video to storage...");
+                await uploadFileToStorage(mergedVideoPath, "videos/finalMerged.mp4");
+                console.log("Uploaded merged video to storage successfully!");
+              } catch (err) {
+                console.error("Error uploading merged video to storage:", err);
+              }
 
               try {
                 // Store this file in a folder named 'ttsAudio' in our bucket
