@@ -194,10 +194,15 @@ exports.onVideoDocCreateNew = onDocumentCreated(
             try {
               console.log("Generating TTS for:", narrative);
               const localAudioPath = await generateTTS(narrative);
-              console.log("TTS audio file created at:", localAudioPath);
+              console.log("Local TTS file path:", localAudioPath);
 
-              // TODO: Optionally, upload localAudioPath to Firebase Storage or merge with ffmpeg
-              // e.g. await uploadToStorage(localAudioPath);
+              try {
+                // Store this file in a folder named 'ttsAudio' in our bucket
+                await uploadFileToStorage(localAudioPath, "ttsAudio/finalNarration.mp3");
+                console.log("TTS file uploaded successfully");
+              } catch (err) {
+                console.error("Failed to upload TTS file:", err);
+              }
             } catch (ttsError) {
               console.error("Error generating TTS:", ttsError);
               // Optionally update Firestore with error info
