@@ -13,7 +13,7 @@ admin.initializeApp();
 
 // Import pipeline modules
 const {extractKeyframe} = require("./pipeline/extractKeyframe");
-// const {analyzeKeyframe} = require("./pipeline/openaiVision");
+const {analyzeKeyframe} = require("./pipeline/openaiVision");
 // const {generateAudioNarration} = require("./pipeline/elevenlabsTTS");
 // const {mergeVideoAndAudio} = require("./pipeline/mergeVideoAudio");
 
@@ -100,7 +100,13 @@ async function uploadFileToStorage(localPath, storagePath) {
  * @return {Promise<void>} A promise that resolves when the function completes
  */
 exports.onVideoDocCreateNew = onDocumentCreated(
-    "videos/{docId}",
+    {
+      document: "videos/{docId}",
+      secrets: [openaiApiKey],
+      region: "us-central1",
+      cpu: 1,
+      memory: "1GiB", // Standard memory allocation
+    },
     /**
      * Processes a new video document creation event
      * @param {Object} event - The Firestore event object
@@ -170,13 +176,25 @@ exports.onVideoDocCreateNew = onDocumentCreated(
           console.log("DEBUG: Parsed file path:", filePath);
           const result = await extractKeyframe(bucketName, filePath);
           console.log("DEBUG: Result from extractKeyframe is:", result);
-        } catch (error) {
-          console.error("Error in extractKeyframe call:", error);
-        }
 
-        console.log(
-            "DEBUG: Skipping extractKeyframe for minimal function test.",
-        );
+          // Use OpenAI to analyze the keyframe and generate a narrative
+          if (result && result.localPath) {
+            console.log("DEBUG: Attempting to analyze keyframe with OpenAI");
+            const narrative = await analyzeKeyframe(result.localPath, process.env.OPENAI_API_KEY);
+            console.log("DEBUG: Generated narrative from OpenAI:", narrative);
+
+            // Update Firestore with the narrative text
+            await ref.update({
+              openAI_narrative: narrative,
+              openAI_narrative_timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            console.log("DEBUG: Updated document with OpenAI narrative");
+          } else {
+            console.error("No valid keyframe path found in extractKeyframe result");
+          }
+        } catch (error) {
+          console.error("Error in extractKeyframe or OpenAI analysis:", error);
+        }
       } catch (error) {
         console.error("Error in minimal function:", error);
         console.error("Full stack trace:", error.stack);

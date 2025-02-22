@@ -24,7 +24,7 @@ async function analyzeKeyframe(localKeyframePath, apiKey) {
     const imageInput = `data:image/jpeg;base64,${base64Image}`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
