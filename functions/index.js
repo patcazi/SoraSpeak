@@ -147,16 +147,27 @@ exports.onVideoDocCreateNew = onDocumentCreated(
         });
         console.log("Document updated with test status");
 
-        // Test extractKeyframe with a known video URL
-        const testUrl =
-          "https://firebasestorage.googleapis.com/v0/b/soraspeak-86493" +
-          ".firebasestorage.app/o/videos%2Foutput.mp4?alt=media" +
-          "&token=d11ef25f-3f1c-4117-821d-378fbfae196d";
+        // Extract video URL from document data
+        const videoUrl = data.url;
+        if (!videoUrl) {
+          console.error("No valid video URL found in doc");
+          return;
+        }
+        console.log("DEBUG: Using video URL from document:", videoUrl);
+
         try {
-          console.log("DEBUG: Attempting to extract keyframe using URL:", testUrl);
-          // Parse the URL to get bucket and file path
+          console.log("DEBUG: Attempting to extract keyframe using URL:", videoUrl);
+          // Parse the Firebase Storage URL to get the file path
+          const urlObj = new URL(videoUrl);
+          const pathWithQuery = urlObj.pathname.split("/o/")[1];
+          if (!pathWithQuery) {
+            console.error("Invalid Firebase Storage URL format");
+            return;
+          }
+          const filePath = decodeURIComponent(pathWithQuery.split("?")[0]);
           const bucketName = "soraspeak-86493.firebasestorage.app";
-          const filePath = decodeURIComponent("videos%2Foutput.mp4");
+
+          console.log("DEBUG: Parsed file path:", filePath);
           const result = await extractKeyframe(bucketName, filePath);
           console.log("DEBUG: Result from extractKeyframe is:", result);
         } catch (error) {
