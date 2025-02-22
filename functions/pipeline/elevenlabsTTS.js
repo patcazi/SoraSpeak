@@ -1,61 +1,54 @@
-console.log("DEBUG: elevenlabsTTS.js top-level code loading...");
-const axios = require("axios");
-const fs = require("fs").promises;
-const os = require("os");
+const {ElevenLabsClient} = require("elevenlabs");
+const fs = require("fs");
 const path = require("path");
 
 /**
- * elevenlabsTTS.js
- *
- * This module integrates with the ElevenLabs Text-to-Speech API to convert text
- * summaries into natural, high-quality audio narration. It uses the
- * ELEVENLABS_API_KEY from the environment for authentication and supports
- * configuration for model selection, voice settings, and output format.
- */
-
-/**
- * Generate audio narration from text using ElevenLabs API
+ * Generates text-to-speech audio from the provided text
  * @param {string} text - The text to convert to speech
- * @param {string} apiKey - ElevenLabs API key
- * @return {Promise<string>} Path to the generated audio file in /tmp
+ * @return {Promise<string>} The path to the generated audio file
  */
-async function generateAudioNarration(text, apiKey) {
-  const VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // Default voice: Rachel
-  const MODEL_ID = "eleven_monolingual_v1";
-
-  const outputPath = path.join(os.tmpdir(), `narration-${Date.now()}.mp3`);
-
-  console.log("Generating audio narration for text:", text);
-
+async function generateTTS(text) {
   try {
-    const response = await axios({
-      method: "POST",
-      url: `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-      headers: {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": apiKey,
-      },
-      data: {
-        text: text,
-        model_id: MODEL_ID,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+      throw new Error("ELEVENLABS_API_KEY not found in environment variables!");
+    }
+
+    // Instantiate the ElevenLabs client with our API key
+    const client = new ElevenLabsClient({apiKey});
+
+    // The convert() call returns a stream-like object
+    // in the latest library versions
+    const audioStream = await client.textToSpeech.convert(
+        "cnBQHhIu4qkkTEV5m18G", // southern US female voice
+        {
+          text, // The text we want spoken
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.3,
+            similarity_boost: 0.75,
+          },
         },
-      },
-      responseType: "arraybuffer",
-    });
+    );
 
-    // Write the audio buffer to a temporary file
-    await fs.writeFile(outputPath, response.data);
-    console.log("Audio file saved to:", outputPath);
+    // Convert the stream to a Buffer
+    const chunks = [];
+    for await (const chunk of audioStream) {
+      chunks.push(chunk);
+    }
+    const audioBuffer = Buffer.concat(chunks);
 
-    return outputPath;
+    // Write the resulting audio to a temp file
+    const tempFilename = `tts_${Date.now()}.mp3`;
+    const localFilePath = path.join("/tmp", tempFilename);
+    fs.writeFileSync(localFilePath, audioBuffer);
+
+    console.log("Successfully generated TTS audio at:", localFilePath);
+    return localFilePath;
   } catch (error) {
-    console.error("Error generating audio:", error.message);
+    console.error("Error generating TTS:", error);
     throw error;
   }
 }
 
-module.exports = {generateAudioNarration};
+module.exports = {generateTTS};

@@ -14,7 +14,7 @@ admin.initializeApp();
 // Import pipeline modules
 const {extractKeyframe} = require("./pipeline/extractKeyframe");
 const {analyzeKeyframe} = require("./pipeline/openaiVision");
-// const {generateAudioNarration} = require("./pipeline/elevenlabsTTS");
+const {generateTTS} = require("./pipeline/elevenlabsTTS");
 // const {mergeVideoAndAudio} = require("./pipeline/mergeVideoAudio");
 
 // Define secrets (keep these for now)
@@ -102,7 +102,7 @@ async function uploadFileToStorage(localPath, storagePath) {
 exports.onVideoDocCreateNew = onDocumentCreated(
     {
       document: "videos/{docId}",
-      secrets: [openaiApiKey],
+      secrets: [openaiApiKey, elevenLabsApiKey],
       region: "us-central1",
       cpu: 1,
       memory: "1GiB", // Standard memory allocation
@@ -189,6 +189,19 @@ exports.onVideoDocCreateNew = onDocumentCreated(
               openAI_narrative_timestamp: admin.firestore.FieldValue.serverTimestamp(),
             });
             console.log("DEBUG: Updated document with OpenAI narrative");
+
+            // Generate TTS from the narrative
+            try {
+              console.log("Generating TTS for:", narrative);
+              const localAudioPath = await generateTTS(narrative);
+              console.log("TTS audio file created at:", localAudioPath);
+
+              // TODO: Optionally, upload localAudioPath to Firebase Storage or merge with ffmpeg
+              // e.g. await uploadToStorage(localAudioPath);
+            } catch (ttsError) {
+              console.error("Error generating TTS:", ttsError);
+              // Optionally update Firestore with error info
+            }
           } else {
             console.error("No valid keyframe path found in extractKeyframe result");
           }
