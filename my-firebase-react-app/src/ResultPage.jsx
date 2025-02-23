@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 function ResultPage() {
   const [videoUrl, setVideoUrl] = useState(null);
@@ -8,32 +8,31 @@ function ResultPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchLatestVideo() {
-      try {
-        // Query the latest video document
-        const q = query(
-          collection(db, 'videos'),
-          orderBy('createdAt', 'desc'),
-          limit(1)
-        );
-        
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          const data = doc.data();
-          if (data.mergedVideoUrl) {
-            setVideoUrl(data.mergedVideoUrl);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching video:', err);
-        setError('Failed to load video');
-      } finally {
-        setLoading(false);
-      }
-    }
+    const q = query(
+      collection(db, "videos"),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
 
-    fetchLatestVideo();
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setLoading(true);
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        console.log("Realtime doc ID:", doc.id, data);
+
+        if (data.mergedVideoUrl) {
+          setVideoUrl(data.mergedVideoUrl);
+        }
+      }
+
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return (
@@ -45,11 +44,14 @@ function ResultPage() {
       ) : error ? (
         <p style={{ color: 'red' }}>{error}</p>
       ) : videoUrl ? (
-        <video 
-          src={videoUrl} 
-          controls 
-          style={{ width: '100%', maxWidth: '600px', marginTop: '20px' }} 
-        />
+        <>
+          <p>Video URL: {videoUrl}</p>
+          <video 
+            src={videoUrl} 
+            controls 
+            style={{ width: '100%', maxWidth: '600px', marginTop: '20px' }} 
+          />
+        </>
       ) : (
         <p>Waiting for merged video...</p>
       )}
