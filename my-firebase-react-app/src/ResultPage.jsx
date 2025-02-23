@@ -7,6 +7,27 @@ function ResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  async function handleDownload() {
+    if (!videoUrl) return;
+    try {
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "myNarratedClip.mp4"; // customize filename
+      document.body.appendChild(link);
+      link.click();
+
+      // cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  }
+
   useEffect(() => {
     const q = query(
       collection(db, "videos"),
@@ -52,21 +73,20 @@ function ResultPage() {
             style={{ width: '100%', maxWidth: '600px', marginTop: '20px' }} 
           />
           <div style={{ marginTop: '20px' }}>
-            <a href={videoUrl} download style={{ textDecoration: "none" }}>
-              <button 
-                style={{ 
-                  padding: '10px 20px',
-                  backgroundColor: '#4a90e2',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                Download Video
-              </button>
-            </a>
+            <button 
+              onClick={handleDownload}
+              style={{ 
+                padding: '10px 20px',
+                backgroundColor: '#4a90e2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Download Video
+            </button>
           </div>
         </>
       ) : (
