@@ -7,9 +7,10 @@ const fs = require("fs").promises;
  * Generate a summary of video content based on a keyframe image
  * @param {string} localKeyframePath - Path to keyframe image file in /tmp
  * @param {string} apiKey - OpenAI API key
+ * @param {string} userContext - Optional user-provided context for the video
  * @return {Promise<string>} The generated summary
  */
-async function analyzeKeyframe(localKeyframePath, apiKey) {
+async function analyzeKeyframe(localKeyframePath, apiKey, userContext = "") {
   try {
     // Initialize OpenAI client with provided API key
     const openai = new OpenAI({apiKey});
@@ -23,6 +24,16 @@ async function analyzeKeyframe(localKeyframePath, apiKey) {
     // Format as data URL
     const imageInput = `data:image/jpeg;base64,${base64Image}`;
 
+    const promptText = `
+      Generate a brief, first-person narrative from the perspective of a woman 
+      on a farm. Keep it to 2–3 sentences and focus on the simple joys of 
+      southern, rural life—highlighting natural beauty and the warmth of a 
+      close-knit community—in a friendly, upbeat tone. The narrative should 
+      be short enough to fit into an 8‑second video.
+      
+      Additional user context: "${userContext}"
+    `;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -31,13 +42,7 @@ async function analyzeKeyframe(localKeyframePath, apiKey) {
           content: [
             {
               type: "text",
-              text: "Generate a brief, first-person narrative from the " +
-                  "perspective of a woman on a farm. Keep it to 2–3 " +
-                  "sentences and focus on the simple joys of southern, " +
-                  "rural life—highlighting natural beauty and the warmth " +
-                  "of a close-knit community—in a friendly, upbeat tone. " +
-                  "The narrative should be short enough to fit into an " +
-                  "8‑second video",
+              text: promptText,
             },
             {
               type: "image_url",

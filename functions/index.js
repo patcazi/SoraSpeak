@@ -186,7 +186,9 @@ exports.onVideoDocCreateNew = onDocumentCreated(
           // Use OpenAI to analyze the keyframe and generate a narrative
           if (result && result.localPath) {
             console.log("DEBUG: Attempting to analyze keyframe with OpenAI");
-            const narrative = await analyzeKeyframe(result.localPath, process.env.OPENAI_API_KEY);
+            const userContext = data.context || "";
+            console.log("DEBUG: User context:", userContext);
+            const narrative = await analyzeKeyframe(result.localPath, process.env.OPENAI_API_KEY, userContext);
             console.log("DEBUG: Generated narrative from OpenAI:", narrative);
 
             // Update Firestore with the narrative text

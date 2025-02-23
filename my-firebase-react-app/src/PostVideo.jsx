@@ -7,7 +7,7 @@ import './PostVideo.css';
 
 function PostVideo() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [userPrompt, setUserPrompt] = useState('');
+  const [contextInput, setContextInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
 
@@ -46,7 +46,8 @@ function PostVideo() {
           // Store metadata in Firestore
           await addDoc(collection(db, 'videos'), {
             url: downloadURL,
-            prompt: userPrompt,
+            context: contextInput,
+            prompt: contextInput,
             createdAt: serverTimestamp(),
             status: 'uploaded',
             userId: auth.currentUser?.uid, // Store user ID if available
@@ -98,8 +99,8 @@ function PostVideo() {
           <div className="textarea-container">
             <textarea
               placeholder="Add context for your video (optional)"
-              value={userPrompt}
-              onChange={(e) => setUserPrompt(e.target.value)}
+              value={contextInput}
+              onChange={(e) => setContextInput(e.target.value)}
               rows="4"
               className="prompt-textarea"
             />
