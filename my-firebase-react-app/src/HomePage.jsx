@@ -14,7 +14,7 @@ function HomePage() {
         <h1>Welcome to SoraSpeak!</h1>
         <p className="greeting">Hello, {firstNameOnly}</p>
         <div className="button-container">
-          <button className="home-button" onClick={() => console.log('Profile clicked')}>
+          <button className="home-button" onClick={() => navigate('/profile')}>
             Profile
           </button>
           <button className="home-button" onClick={() => navigate('/post-video')}>

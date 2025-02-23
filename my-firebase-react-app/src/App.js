@@ -5,6 +5,7 @@ import HomePage from './HomePage';
 import PostVideo from './PostVideo';
 import ProcessingPage from './ProcessingPage';
 import ResultPage from './ResultPage';
+import ProfilePage from './ProfilePage';
 import { AuthProvider } from './AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -43,6 +44,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ResultPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage userName="User" />
               </ProtectedRoute>
             }
           />
