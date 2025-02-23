@@ -51,6 +51,21 @@ function ResultPage() {
             controls 
             style={{ width: '100%', maxWidth: '600px', marginTop: '20px' }} 
           />
+          <div style={{ marginTop: '20px' }}>
+            <button 
+              style={{ 
+                padding: '10px 20px',
+                backgroundColor: '#4a90e2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Download Video
+            </button>
+          </div>
         </>
       ) : (
         <p>Waiting for merged video...</p>
