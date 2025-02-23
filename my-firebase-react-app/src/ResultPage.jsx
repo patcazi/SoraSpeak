@@ -45,7 +45,7 @@ function ResultPage() {
         <p style={{ color: 'red' }}>{error}</p>
       ) : videoUrl ? (
         <>
-          <p>Video URL: {videoUrl}</p>
+          {/* <p>Video URL: {videoUrl}</p> */}
           <video 
             src={videoUrl} 
             controls 

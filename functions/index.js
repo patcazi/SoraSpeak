@@ -114,6 +114,7 @@ exports.onVideoDocCreateNew = onDocumentCreated(
      */
     async (event) => {
       console.log("DEBUG: Received event:", JSON.stringify(event, null, 2));
+      console.log("Function sees doc ID:", event.data.id);
 
       try {
         // In v2, we need to access the data through event.data
@@ -139,9 +140,8 @@ exports.onVideoDocCreateNew = onDocumentCreated(
 
         const data = event.data.data();
         console.log("DEBUG: Document data:", data);
-        console.log(
-            "DEBUG: About to update document with test_triggered status",
-        );
+        console.log("DEBUG: About to update document with test_triggered status");
+        console.log("About to update doc ID:", event.data.id);
 
         // Update document with test status using the document reference
         const ref = event.data.ref;
@@ -151,6 +151,7 @@ exports.onVideoDocCreateNew = onDocumentCreated(
           status: "test_triggered",
           testTimestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
+        console.log("Updated doc ID:", event.data.id);
         console.log("Document updated with test status");
 
         // Extract video URL from document data
