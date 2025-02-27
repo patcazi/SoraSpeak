@@ -235,8 +235,24 @@ exports.onVideoDocCreateNew = onDocumentCreated(
                 // Store this file in a folder named 'ttsAudio' in our bucket
                 await uploadFileToStorage(localAudioPath, "ttsAudio/finalNarration.mp3");
                 console.log("TTS file uploaded successfully");
+
+                // Generate a signed URL for the TTS audio file
+                const bucket = admin.storage().bucket();
+                const ttsFile = bucket.file("ttsAudio/finalNarration.mp3");
+                const [ttsSignedUrl] = await ttsFile.getSignedUrl({
+                  action: "read",
+                  expires: Date.now() + (1000 * 60 * 60 * 24), // valid for 24 hours
+                });
+                console.log("TTS audio signed URL:", ttsSignedUrl);
+
+                // Update Firestore document with TTS audio URL and timestamp
+                await ref.update({
+                  ttsAudioUrl: ttsSignedUrl,
+                  ttsAudioTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                console.log("Updated document with TTS audio URL");
               } catch (err) {
-                console.error("Failed to upload TTS file:", err);
+                console.error("Failed to upload TTS file or generate signed URL:", err);
               }
             } catch (ttsError) {
               console.error("Error generating TTS:", ttsError);
